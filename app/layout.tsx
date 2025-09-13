@@ -1,5 +1,6 @@
 import './globals.css'
 import { Poppins } from 'next/font/google'
+import { Analytics } from "@vercel/analytics/next"
 
 const poppins = Poppins({ 
   subsets: ['latin'],
@@ -22,6 +23,7 @@ export default function RootLayout({
         <div className="min-h-screen bg-slate-50 text-slate-800">
           {children}
         </div>
+        <Analytics />
       </body>
     </html>
   )
