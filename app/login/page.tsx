@@ -1,4 +1,5 @@
 import Navbar from '../components/Navbar';
+import LoginForm from './LoginForm';
 
 const loginHighlights = [
   {
@@ -58,46 +59,7 @@ export default function LoginPage() {
                 <a href="mailto:support@easychat.ai" className="font-medium text-indigo-600 hover:text-indigo-500">Destek ekibi ile iletisim kurun</a>.
               </p>
             </div>
-            <form className="space-y-5" noValidate>
-              <div>
-                <label htmlFor="email" className="block text-sm font-medium text-slate-600">Is e-posta adresi</label>
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  autoComplete="email"
-                  placeholder="ornek@easychat.ai"
-                  className="mt-2 w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 shadow-sm transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200"
-                />
-              </div>
-              <div>
-                <div className="flex items-center justify-between">
-                  <label htmlFor="password" className="block text-sm font-medium text-slate-600">Parola</label>
-                  <a href="/reset-password" className="text-xs font-medium text-indigo-600 hover:text-indigo-500">Parolami unuttum</a>
-                </div>
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  autoComplete="current-password"
-                  placeholder="Guclu bir parola girin"
-                  className="mt-2 w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 shadow-sm transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200"
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <label className="flex items-center gap-2 text-sm text-slate-600">
-                  <input type="checkbox" className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" />
-                  Beni hatirla
-                </label>
-                <a href="/#demo-form" className="text-sm font-medium text-slate-500 hover:text-slate-700">Satis ekibine ulas</a>
-              </div>
-              <button
-                type="button"
-                className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-indigo-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-indigo-700 hover:shadow-lg hover:shadow-indigo-500/25 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-              >
-                Giris Yap
-              </button>
-            </form>
+            <LoginForm />
             <div className="mt-6 rounded-lg border border-indigo-100 bg-indigo-50 p-4 text-sm text-indigo-700">
               Hesabiniz yok mu?{' '}
               <a href="/#demo-form" className="font-semibold underline decoration-indigo-400/70 hover:decoration-indigo-600">EasyChat ile tanisin</a>

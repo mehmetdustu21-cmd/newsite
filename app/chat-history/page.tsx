@@ -1,71 +1,200 @@
 import Navbar from '../components/Navbar';
+import { supabaseServerClient } from '../../lib/supabaseServer';
 
-const summaryMetrics = [
-  { label: 'Aylik konusma', value: '1.245', change: '+18%' },
-  { label: 'Cozum suresi ort.', value: '7 dk', change: '-22%' },
-  { label: 'Memnuniyet skoru', value: '4.7/5', change: '+0.3' },
-  { label: 'Aktif ajansayisi', value: '12', change: '+2' }
-];
-
-const sentimentStyles: Record<string, string> = {
-  Pozitif: 'border-emerald-100 bg-emerald-50 text-emerald-700',
-  Notr: 'border-slate-200 bg-slate-100 text-slate-700',
-  Negatif: 'border-rose-100 bg-rose-50 text-rose-700'
+type MessageRecord = {
+  id: string;
+  numericId: number;
+  text: string;
 };
 
-const conversations = [
-  {
-    id: 'EC-2025-001',
-    customer: 'Ayse Yilmaz',
-    platform: 'WhatsApp',
-    lastMessage: 'Tesekkur ederim, gerekli bilgileri aldim. Odemeyi birazdan tamamlayacagim.',
-    agent: 'Mert Kaya',
-    sentiment: 'Pozitif',
-    updatedAt: '18 Eyl 2025 - 10:24',
-    duration: '12 dk',
-    tags: ['VIP', 'Fatura', 'Yenileme']
-  },
-  {
-    id: 'EC-2025-014',
-    customer: 'Baris Demir',
-    platform: 'Web Widget',
-    lastMessage: 'Tarifeyi degistirmek istiyorum fakat fiyatlari bulamiyorum. Yardimci olur musunuz?',
-    agent: 'Selin Aydin',
-    sentiment: 'Notr',
-    updatedAt: '18 Eyl 2025 - 09:58',
-    duration: '9 dk',
-    tags: ['Satis', 'Bilgilendirme']
-  },
-  {
-    id: 'EC-2025-021',
-    customer: 'Dilan Koc',
-    platform: 'Instagram DM',
-    lastMessage: 'Gonderdigim ekran goruntusundeki hata halen devam ediyor. Cozum suresi nedir?',
-    agent: 'Okan Er',
-    sentiment: 'Negatif',
-    updatedAt: '18 Eyl 2025 - 09:12',
-    duration: '21 dk',
-    tags: ['Destek', 'Hata kaydi', 'Oncelik: Yuksek']
-  },
-  {
-    id: 'EC-2025-037',
-    customer: 'Gamze Cinar',
-    platform: 'WhatsApp',
-    lastMessage: 'Kampanyaniz ile ilgili detayli bilgi almak istiyorum. Beni arayabilir misiniz?',
-    agent: 'Bahar Y.',
-    sentiment: 'Pozitif',
-    updatedAt: '17 Eyl 2025 - 18:47',
-    duration: '6 dk',
-    tags: ['Pazarlama', 'Cagrilar']
+type SessionGroup = {
+  sessionId: string;
+  messages: MessageRecord[];
+};
+
+function tryParseJson(raw: string): unknown {
+  const trimmed = raw.trim();
+  if (
+    (trimmed.startsWith('{') && trimmed.endsWith('}')) ||
+    (trimmed.startsWith('[') && trimmed.endsWith(']'))
+  ) {
+    try {
+      return JSON.parse(trimmed);
+    } catch (error) {
+      return raw;
+    }
   }
-];
+  return raw;
+}
+
+function formatMessage(value: unknown, depth = 0): string {
+  if (depth > 6) {
+    return 'Mesaj cok derin bir yapida, ozetlenemedi.';
+  }
+
+  if (value === null || value === undefined) {
+    return 'Mesaj bulunamadi';
+  }
+
+  if (typeof value === 'string') {
+    const parsed = tryParseJson(value);
+    if (typeof parsed === 'string') {
+      const trimmed = parsed.trim();
+      return trimmed.length > 0 ? trimmed : 'Mesaj bulunamadi';
+    }
+    return formatMessage(parsed, depth + 1);
+  }
+
+  if (Array.isArray(value)) {
+    const parts = value
+      .map((item) => formatMessage(item, depth + 1))
+      .filter((part) => part.length > 0);
+
+    const joined = parts.join('\n\n');
+    return joined.length > 0 ? joined : 'Mesaj bulunamadi';
+  }
+
+  if (typeof value === 'object') {
+    const obj = value as Record<string, unknown>;
+
+    if (typeof obj.content === 'string' || typeof obj.content === 'object') {
+      return formatMessage(obj.content, depth + 1);
+    }
+
+    if (typeof obj.text === 'string' || typeof obj.text === 'object') {
+      return formatMessage(obj.text, depth + 1);
+    }
+
+    if (typeof obj.message === 'string' || typeof obj.message === 'object') {
+      return formatMessage(obj.message, depth + 1);
+    }
+
+    if (typeof obj.data === 'string' || typeof obj.data === 'object') {
+      return formatMessage(obj.data, depth + 1);
+    }
+
+    try {
+      return JSON.stringify(obj, null, 2);
+    } catch (error) {
+      return String(obj);
+    }
+  }
+
+  return String(value);
+}
+
+function normalizeId(value: unknown): { text: string; numeric: number } {
+  const text = value?.toString() ?? Math.random().toString(36).slice(2);
+  const numeric = Number(text);
+  return {
+    text,
+    numeric: Number.isFinite(numeric) ? numeric : Number.MAX_SAFE_INTEGER
+  };
+}
+
+async function fetchChatHistory(): Promise<{
+  sessions: SessionGroup[];
+  totalRecords: number;
+  error?: string;
+}> {
+  try {
+    const supabase = supabaseServerClient();
+    const { data, error } = await supabase
+      .from('n8n_chat_histories_wp')
+      .select('id, session_id, message')
+      .order('session_id', { ascending: true })
+      .order('id', { ascending: true })
+      .limit(500);
+
+    if (error) {
+      return { sessions: [], totalRecords: 0, error: error.message };
+    }
+
+    if (!data || data.length === 0) {
+      return { sessions: [], totalRecords: 0 };
+    }
+
+    const sessionMap = new Map<string, MessageRecord[]>();
+
+    for (const row of data) {
+      const idInfo = normalizeId(row.id);
+      const sessionId = row.session_id?.toString() ?? 'Bilinmeyen oturum';
+      const messageText = formatMessage(row.message);
+
+      const record: MessageRecord = {
+        id: idInfo.text,
+        numericId: idInfo.numeric,
+        text: messageText
+      };
+
+      if (!sessionMap.has(sessionId)) {
+        sessionMap.set(sessionId, []);
+      }
+
+      sessionMap.get(sessionId)!.push(record);
+    }
+
+    const sessions: SessionGroup[] = Array.from(sessionMap.entries()).map(([sessionId, records]) => {
+      const sorted = records.sort((a, b) => a.numericId - b.numericId);
+      return {
+        sessionId,
+        messages: sorted
+      };
+    });
+
+    sessions.sort((a, b) => {
+      const lastA = a.messages[a.messages.length - 1]?.numericId ?? -Infinity;
+      const lastB = b.messages[b.messages.length - 1]?.numericId ?? -Infinity;
+      return lastB - lastA;
+    });
+
+    return {
+      sessions,
+      totalRecords: data.length
+    };
+  } catch (err) {
+    return {
+      sessions: [],
+      totalRecords: 0,
+      error: err instanceof Error ? err.message : 'Supabase baglantisi saglanamadi.'
+    };
+  }
+}
+
+function buildSummary(sessions: SessionGroup[], totalRecords: number) {
+  const sessionCount = sessions.length;
+  const latestSession = sessions[0];
+  const latestPreview = latestSession
+    ? latestSession.messages[latestSession.messages.length - 1]?.text.replace(/\s+/g, ' ').slice(0, 64) ?? 'Kayit yok'
+    : 'Kayit yok';
+  const longestSession = sessions.reduce((max, current) => {
+    if (!max || current.messages.length > max.messages.length) {
+      return current;
+    }
+    return max;
+  }, sessions[0]);
+
+  return [
+    { label: 'Toplam kayit', value: totalRecords.toString(), change: '' },
+    { label: 'Toplam oturum', value: sessionCount.toString(), change: '' },
+    {
+      label: 'En uzun oturum',
+      value: longestSession ? `${longestSession.sessionId} (${longestSession.messages.length} mesaj)` : 'Kayit yok',
+      change: ''
+    },
+    { label: 'Son mesaj on izlemesi', value: latestPreview.length > 0 ? latestPreview : 'Kayit yok', change: '' }
+  ];
+}
 
 export const metadata = {
   title: 'EasyChat | Sohbet Gecmisi',
-  description: 'Musteri diyaloglarinizin tam kaydina erisin ve ekip performansini analiz edin.'
+  description: 'Supabase tablonuzdaki sohbet oturumlarini inceleyin.'
 };
 
-export default function ChatHistoryPage() {
+export default async function ChatHistoryPage() {
+  const { sessions, totalRecords, error } = await fetchChatHistory();
+  const summaryMetrics = buildSummary(sessions, totalRecords);
+
   return (
     <main className="min-h-screen bg-slate-50">
       <Navbar />
@@ -73,13 +202,12 @@ export default function ChatHistoryPage() {
         <div className="mx-auto flex max-w-7xl flex-col gap-10">
           <header className="flex flex-col gap-6">
             <div className="max-w-3xl space-y-3">
-              <span className="inline-flex w-fit items-center gap-2 rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-xs font-medium uppercase tracking-wide text-indigo-600">
-                Sohbet kayitlari
+              <span className="inline-flex w-fit items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-medium uppercase tracking-wide text-emerald-600">
+                Sohbet oturumlari
               </span>
-              <h1 className="text-4xl sm:text-5xl font-bold text-slate-900">Tum kanal gecmisi tek ekranda</h1>
+              <h1 className="text-4xl sm:text-5xl font-bold text-slate-900">Oturum bazli sohbet gecmisi</h1>
               <p className="text-lg text-slate-600">
-                WhatsApp, web widget ve sosyal medya kanallarinizdaki tum konusmalari kronolojik olarak inceleyin.
-                Ajansal performansi takip edin, ekipler arasi devretme sureclerini kaydetin ve kritik musterileri kaybetmeyin.
+                Session ID bazinda gruplanmis mesajlari duzenli, WhatsApp benzeri bir arayuzde inceleyin. Kartlari acarak tum mesajlari kronolojik sirayla goruntuleyin.
               </p>
             </div>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -88,7 +216,7 @@ export default function ChatHistoryPage() {
                   <p className="text-xs font-medium uppercase tracking-wide text-slate-500">{metric.label}</p>
                   <div className="mt-3 flex items-baseline justify-between">
                     <span className="text-2xl font-semibold text-slate-900">{metric.value}</span>
-                    <span className="text-xs font-semibold text-emerald-600">{metric.change}</span>
+                    {metric.change && <span className="text-xs font-semibold text-emerald-600">{metric.change}</span>}
                   </div>
                 </div>
               ))}
@@ -96,73 +224,85 @@ export default function ChatHistoryPage() {
           </header>
 
           <div className="rounded-2xl border border-slate-200 bg-white/95 p-6 shadow-xl">
-            <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-              <div className="flex flex-1 items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-                <svg className="h-5 w-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-4.35-4.35M18 11a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-                <input
-                  type="search"
-                  placeholder="Musteri ya da konusma ID'si ile arayin"
-                  className="w-full border-0 bg-transparent text-sm text-slate-600 placeholder:text-slate-400 focus:outline-none"
-                />
+            {error && (
+              <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+                Supabase'ten veri cekilirken hata olustu: {error}
               </div>
-              <div className="flex flex-wrap gap-3">
-                <select className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200">
-                  <option value="tum">Tum kanallar</option>
-                  <option value="whatsapp">WhatsApp</option>
-                  <option value="web">Web widget</option>
-                  <option value="instagram">Instagram DM</option>
-                </select>
-                <select className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-600 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-200">
-                  <option value="7">Son 7 gun</option>
-                  <option value="30">Son 30 gun</option>
-                  <option value="90">Son 90 gun</option>
-                  <option value="custom">Ozel tarih araligi</option>
-                </select>
-                <button className="inline-flex items-center gap-2 rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-2 text-sm font-medium text-indigo-600 transition hover:border-indigo-300 hover:text-indigo-700">
-                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 15l-6-6-6 6" />
-                  </svg>
-                  Sirala
-                </button>
+            )}
+
+            {sessions.length === 0 && !error && (
+              <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-10 text-center text-sm text-slate-500">
+                Gosterilecek oturum bulunamadi. Supabase tablonuza veri eklendiginde bu alan guncellenecek.
               </div>
-            </div>
+            )}
 
             <div className="mt-6 space-y-4">
-              {conversations.map((conversation) => (
-                <article
-                  key={conversation.id}
-                  className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:border-indigo-300 hover:shadow-lg"
-                >
-                  <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                    <div>
-                      <div className="flex flex-wrap items-center gap-3 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                        <span className="rounded-full bg-slate-100 px-3 py-1 text-slate-600">{conversation.platform}</span>
-                        <span className="rounded-full border border-slate-200 px-3 py-1 text-slate-500">{conversation.id}</span>
-                        <span className="rounded-full border border-slate-200 px-3 py-1 text-slate-500">Sure: {conversation.duration}</span>
+              {sessions.map((session) => {
+                const lastMessage = session.messages[session.messages.length - 1]?.text ?? 'Mesaj yok';
+                const preview = lastMessage.replace(/\s+/g, ' ').slice(0, 96);
+
+                return (
+                  <details
+                    key={session.sessionId}
+                    className="group rounded-2xl border border-slate-200 bg-white shadow-sm transition hover:border-emerald-300 hover:shadow-xl"
+                  >
+                    <summary className="flex cursor-pointer flex-col gap-3 rounded-2xl px-6 py-5 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="space-y-1">
+                        <span className="text-xs font-semibold uppercase tracking-wide text-emerald-600">Oturum</span>
+                        <h2 className="text-xl font-bold text-slate-900">{session.sessionId}</h2>
                       </div>
-                      <h3 className="mt-4 text-xl font-semibold text-slate-900">{conversation.customer}</h3>
-                      <p className="mt-2 max-w-3xl text-sm leading-relaxed text-slate-600">{conversation.lastMessage}</p>
-                      <div className="mt-4 flex flex-wrap gap-2">
-                        {conversation.tags.map((tag) => (
-                          <span key={tag} className="inline-flex items-center rounded-full bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-600">
-                            {tag}
-                          </span>
-                        ))}
+                      <div className="flex flex-1 flex-col gap-2 text-sm text-slate-600 sm:flex-row sm:items-center sm:justify-end">
+                        <span className="rounded-full bg-emerald-500/10 px-3 py-1 font-medium text-emerald-600">
+                          {session.messages.length} mesaj
+                        </span>
+                        <span className="hidden sm:block text-slate-300">|</span>
+                        <span className="max-w-lg truncate text-slate-500">
+                          Son mesaj: {preview.length > 0 ? preview : 'Mesaj yok'}
+                        </span>
+                      </div>
+                    </summary>
+
+                    <div className="border-t border-slate-200 bg-gradient-to-b from-slate-50 via-white to-slate-50 px-0 py-6 sm:px-6">
+                      <div className="mx-auto flex w-full max-w-3xl flex-col gap-4">
+                        <div className="mx-auto flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
+                          <span className="inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
+                          Sohbet kaydi
+                        </div>
+                        <div className="w-full rounded-3xl border border-slate-200 bg-white p-4 shadow-inner">
+                          <div className="flex flex-col gap-3">
+                            {session.messages.map((message, index) => {
+                              const isOutbound = index % 2 === 1;
+                              return (
+                                <div key={message.id} className="w-full">
+                                  <div className={`flex w-full ${isOutbound ? 'justify-end' : 'justify-start'}`}>
+                                    <div
+                                      className={`flex w-full max-w-[380px] flex-col gap-2 rounded-2xl px-4 py-3 text-sm leading-relaxed shadow transition ${
+                                        isOutbound
+                                          ? 'ml-auto mr-0 bg-emerald-500 text-white shadow-emerald-500/30'
+                                          : 'mr-auto ml-0 bg-slate-100 text-slate-700 shadow-slate-200'
+                                      }`}
+                                    >
+                                      <p className="whitespace-pre-wrap text-sm">{message.text}</p>
+                                      <div
+                                        className={`flex items-center justify-between text-[11px] tracking-wide ${
+                                          isOutbound ? 'text-emerald-100/90' : 'text-slate-400'
+                                        }`}
+                                      >
+                                        <span>Mesaj #{index + 1}</span>
+                                        <span>ID: {message.id}</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
                       </div>
                     </div>
-                    <div className="flex flex-col items-start gap-2 text-sm text-slate-600 md:items-end md:text-right">
-                      <span className="font-semibold text-slate-800">Sorumlu: {conversation.agent}</span>
-                      <span className="text-xs text-slate-500">Guncellendi: {conversation.updatedAt}</span>
-                      <span className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-semibold ${sentimentStyles[conversation.sentiment] ?? 'border-slate-200 bg-slate-100 text-slate-700'}`}>
-                        <span className="h-2 w-2 rounded-full bg-current"></span>
-                        Duygu: {conversation.sentiment}
-                      </span>
-                    </div>
-                  </div>
-                </article>
-              ))}
+                  </details>
+                );
+              })}
             </div>
           </div>
         </div>
