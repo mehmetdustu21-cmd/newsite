@@ -9,7 +9,7 @@ export default function Navbar() {
   };
 
   return (
-    <motion.nav 
+    <motion.nav
       className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-slate-200 shadow-sm"
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
@@ -17,10 +17,10 @@ export default function Navbar() {
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          {/* Logo - Sol tarafta */}
+          {/* Logo */}
           <div className="flex items-center">
             <a href="/" className="flex items-center hover:opacity-80 transition-opacity duration-200">
-              <img 
+              <img
                 src="/easychat-logo.svg"
                 alt="EasyChat Logo"
                 className="h-10 w-auto"
@@ -28,17 +28,23 @@ export default function Navbar() {
             </a>
           </div>
 
-          {/* Navigation Menu - Ortada */}
+          {/* Navigation */}
           <div className="hidden md:flex items-center space-x-8">
             <a href="#features" className="text-slate-600 hover:text-slate-800 text-sm font-medium transition-colors duration-200 font-poppins">
-              Özellikler
+              Ozellikler
             </a>
             <a href="#demo-form" className="text-slate-600 hover:text-slate-800 text-sm font-medium transition-colors duration-200 font-poppins">
-              İletişim
+              Iletisim
+            </a>
+            <a href="/chat-history" className="text-slate-600 hover:text-slate-800 text-sm font-medium transition-colors duration-200 font-poppins">
+              Sohbet Gecmisi
+            </a>
+            <a href="/login" className="text-slate-600 hover:text-slate-800 text-sm font-medium transition-colors duration-200 font-poppins">
+              Giris Yap
             </a>
           </div>
 
-          {/* CTA Button - Sağ tarafta */}
+          {/* CTA Button */}
           <motion.button
             onClick={handleDemoRequest}
             className="inline-flex items-center justify-center px-6 py-2.5 text-sm font-semibold text-white bg-indigo-600 rounded-lg hover:bg-indigo-700 transition-all duration-200 ease-out hover:shadow-lg hover:shadow-indigo-500/25 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
