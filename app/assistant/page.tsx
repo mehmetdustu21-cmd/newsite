@@ -167,15 +167,20 @@ export default function AssistantPage() {
                   )}
                 </div>
               )}
-              {messages.map((message, index) => (
-                <div key={${message.role}-} className={lex }>
-                  <div
-                    className={max-w-xl rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-lg }
-                  >
-                    {message.content}
+              {messages.map((message, index) => {
+                const isUser = message.role === "user";
+                const wrapperClass = "flex " + (isUser ? "justify-end" : "justify-start");
+                const bubbleClass = [
+                  "max-w-xl rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-lg",
+                  isUser ? "bg-indigo-500 text-white" : "bg-slate-800/80 text-slate-100"
+                ].join(" ");
+
+                return (
+                  <div key={message.role + "-" + index} className={wrapperClass}>
+                    <div className={bubbleClass}>{message.content}</div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
               {loading && (
                 <div className="flex justify-start">
                   <div className="flex items-center gap-2 rounded-2xl bg-slate-800/80 px-4 py-3 text-sm text-slate-300">
