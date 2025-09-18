@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, type ChangeEvent, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
@@ -40,12 +40,12 @@ export default function LoginForm() {
         return;
       }
 
-      setState({ loading: false, error: null, success: 'Giris basarili. Yonlendiriliyorsunuz...' });
-      setTimeout(() => router.push('/chat-history'), 800);
+      setState({ loading: false, error: null, success: 'Giriş başarılı. Yönlendiriliyorsunuz...' });
+      setTimeout(() => router.push('/dashboard'), 800);
     } catch (err) {
       setState({
         loading: false,
-        error: err instanceof Error ? err.message : 'Beklenmedik bir hata olustu.',
+        error: err instanceof Error ? err.message : 'Beklenmedik bir hata oluştu.',
         success: null
       });
     }
@@ -54,7 +54,7 @@ export default function LoginForm() {
   return (
     <form className="space-y-5" noValidate onSubmit={handleSubmit}>
       <div>
-        <label htmlFor="email" className="block text-sm font-medium text-slate-600">Is e-posta adresi</label>
+        <label htmlFor="email" className="block text-sm font-medium text-slate-600">İş e-posta adresi</label>
         <input
           id="email"
           name="email"
@@ -70,14 +70,14 @@ export default function LoginForm() {
       <div>
         <div className="flex items-center justify-between">
           <label htmlFor="password" className="block text-sm font-medium text-slate-600">Parola</label>
-          <a href="/reset-password" className="text-xs font-medium text-indigo-600 hover:text-indigo-500">Parolami unuttum</a>
+          <a href="/reset-password" className="text-xs font-medium text-indigo-600 hover:text-indigo-500">Parolamı unuttum</a>
         </div>
         <input
           id="password"
           name="password"
           type="password"
           autoComplete="current-password"
-          placeholder="Guclu bir parola girin"
+          placeholder="Güçlü bir parola girin"
           className="mt-2 w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 shadow-sm transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200"
           value={form.password}
           onChange={handleChange('password')}
@@ -87,16 +87,16 @@ export default function LoginForm() {
       <div className="flex items-center justify-between">
         <label className="flex items-center gap-2 text-sm text-slate-600">
           <input type="checkbox" className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500" />
-          Beni hatirla
+          Beni hatırla
         </label>
-        <a href="/#demo-form" className="text-sm font-medium text-slate-500 hover:text-slate-700">Satis ekibine ulas</a>
+        <a href="/#demo-form" className="text-sm font-medium text-slate-500 hover:text-slate-700">Satış ekibine ulaş</a>
       </div>
       <button
         type="submit"
         className="w-full inline-flex items-center justify-center gap-2 rounded-lg bg-indigo-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-indigo-700 hover:shadow-lg hover:shadow-indigo-500/25 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-70"
         disabled={state.loading}
       >
-        {state.loading ? 'Giris yapiliyor...' : 'Giris Yap'}
+        {state.loading ? 'Giriş yapılıyor...' : 'Giriş Yap'}
       </button>
       {state.error && (
         <p className="text-sm font-medium text-rose-600">{state.error}</p>

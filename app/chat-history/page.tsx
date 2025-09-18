@@ -1,4 +1,4 @@
-import Navbar from '../components/Navbar';
+﻿import Navbar from '../components/Navbar';
 import { supabaseServerClient } from '../../lib/supabaseServer';
 
 type MessageRecord = {
@@ -29,18 +29,18 @@ function tryParseJson(raw: string): unknown {
 
 function formatMessage(value: unknown, depth = 0): string {
   if (depth > 6) {
-    return 'Mesaj cok derin bir yapida, ozetlenemedi.';
+    return 'Mesaj çok derin bir yapıda, özetlenemedi.';
   }
 
   if (value === null || value === undefined) {
-    return 'Mesaj bulunamadi';
+    return 'Mesaj bulunamadı';
   }
 
   if (typeof value === 'string') {
     const parsed = tryParseJson(value);
     if (typeof parsed === 'string') {
       const trimmed = parsed.trim();
-      return trimmed.length > 0 ? trimmed : 'Mesaj bulunamadi';
+      return trimmed.length > 0 ? trimmed : 'Mesaj bulunamadı';
     }
     return formatMessage(parsed, depth + 1);
   }
@@ -51,7 +51,7 @@ function formatMessage(value: unknown, depth = 0): string {
       .filter((part) => part.length > 0);
 
     const joined = parts.join('\n\n');
-    return joined.length > 0 ? joined : 'Mesaj bulunamadi';
+    return joined.length > 0 ? joined : 'Mesaj bulunamadı';
   }
 
   if (typeof value === 'object') {
@@ -156,39 +156,31 @@ async function fetchChatHistory(): Promise<{
     return {
       sessions: [],
       totalRecords: 0,
-      error: err instanceof Error ? err.message : 'Supabase baglantisi saglanamadi.'
+      error: err instanceof Error ? err.message : 'Supabase bağlantısı sağlanamadı.'
     };
   }
 }
 
 function buildSummary(sessions: SessionGroup[], totalRecords: number) {
   const sessionCount = sessions.length;
+  const activeSessionCount = Math.min(sessionCount, 12);
+  const singleMessageSessions = sessions.filter((session) => session.messages.length <= 1).length;
   const latestSession = sessions[0];
   const latestPreview = latestSession
-    ? latestSession.messages[latestSession.messages.length - 1]?.text.replace(/\s+/g, ' ').slice(0, 64) ?? 'Kayit yok'
-    : 'Kayit yok';
-  const longestSession = sessions.reduce((max, current) => {
-    if (!max || current.messages.length > max.messages.length) {
-      return current;
-    }
-    return max;
-  }, sessions[0]);
+    ? latestSession.messages[latestSession.messages.length - 1]?.text.replace(/\s+/g, ' ').slice(0, 48) ?? 'Kayıt yok'
+    : 'Kayıt yok';
 
   return [
-    { label: 'Toplam kayit', value: totalRecords.toString(), change: '' },
+    { label: 'Toplam kayıt', value: totalRecords.toString(), change: '' },
     { label: 'Toplam oturum', value: sessionCount.toString(), change: '' },
-    {
-      label: 'En uzun oturum',
-      value: longestSession ? `${longestSession.sessionId} (${longestSession.messages.length} mesaj)` : 'Kayit yok',
-      change: ''
-    },
-    { label: 'Son mesaj on izlemesi', value: latestPreview.length > 0 ? latestPreview : 'Kayit yok', change: '' }
+    { label: 'Aktif oturum (son 12)', value: activeSessionCount.toString(), change: latestPreview },
+    { label: 'Tek mesajlık oturum', value: singleMessageSessions.toString(), change: singleMessageSessions > 0 ? 'Önlem alın' : '' }
   ];
 }
 
 export const metadata = {
-  title: 'EasyChat | Sohbet Gecmisi',
-  description: 'Supabase tablonuzdaki sohbet oturumlarini inceleyin.'
+  title: 'EasyChat | Sohbet Geçmişi',
+  description: 'Supabase tablonuzdaki sohbet oturumlarını inceleyin.'
 };
 
 export default async function ChatHistoryPage() {
@@ -203,11 +195,11 @@ export default async function ChatHistoryPage() {
           <header className="flex flex-col gap-6">
             <div className="max-w-3xl space-y-3">
               <span className="inline-flex w-fit items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-medium uppercase tracking-wide text-emerald-600">
-                Sohbet oturumlari
+                Sohbet oturumları
               </span>
-              <h1 className="text-4xl sm:text-5xl font-bold text-slate-900">Oturum bazli sohbet gecmisi</h1>
+              <h1 className="text-4xl sm:text-5xl font-bold text-slate-900">Oturum bazlı sohbet geçmişi</h1>
               <p className="text-lg text-slate-600">
-                Session ID bazinda gruplanmis mesajlari duzenli, WhatsApp benzeri bir arayuzde inceleyin. Kartlari acarak tum mesajlari kronolojik sirayla goruntuleyin.
+                Session ID bazında gruplanmış mesajları düzenli, WhatsApp benzeri bir arayüzde inceleyin. Kartları açarak tüm mesajları kronolojik sırayla görüntüleyin.
               </p>
             </div>
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -226,13 +218,13 @@ export default async function ChatHistoryPage() {
           <div className="rounded-2xl border border-slate-200 bg-white/95 p-6 shadow-xl">
             {error && (
               <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
-                Supabase'ten veri cekilirken hata olustu: {error}
+                Supabase'ten veri çekilirken hata oluştu: {error}
               </div>
             )}
 
             {sessions.length === 0 && !error && (
               <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-10 text-center text-sm text-slate-500">
-                Gosterilecek oturum bulunamadi. Supabase tablonuza veri eklendiginde bu alan guncellenecek.
+                Gösterilecek oturum bulunamadı. Supabase tablonuza veri eklendiğinde bu alan güncellenecek.
               </div>
             )}
 
@@ -266,7 +258,7 @@ export default async function ChatHistoryPage() {
                       <div className="mx-auto flex w-full max-w-3xl flex-col gap-4">
                         <div className="mx-auto flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-1 text-[11px] font-semibold uppercase tracking-wide text-slate-400">
                           <span className="inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
-                          Sohbet kaydi
+                          Sohbet kaydı
                         </div>
                         <div className="w-full rounded-3xl border border-slate-200 bg-white p-4 shadow-inner">
                           <div className="flex flex-col gap-3">
@@ -310,3 +302,4 @@ export default async function ChatHistoryPage() {
     </main>
   );
 }
+

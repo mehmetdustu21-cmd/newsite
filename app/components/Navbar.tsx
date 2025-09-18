@@ -1,13 +1,12 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 
 const navigationLinks = [
-  { href: '#features', label: 'Ozellikler' },
-  { href: '#demo-form', label: 'Iletisim' },
-  { href: '/chat-history', label: 'Sohbet Gecmisi' },
-  { href: '/login', label: 'Giris Yap' }
+  { href: '#features', label: 'Özellikler' },
+  { href: '#demo-form', label: 'İletişim' },
+  { href: '/login', label: 'Giriş Yap' }
 ];
 
 export default function Navbar() {
@@ -74,10 +73,10 @@ export default function Navbar() {
               type="button"
               onClick={toggleMobileMenu}
               className="inline-flex items-center justify-center rounded-lg border border-slate-300 bg-white p-2 text-slate-600 shadow-sm transition hover:border-slate-400 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              aria-label="Mobil menuyu ac"
+              aria-label="Mobil menüyü aç"
               aria-expanded={mobileOpen}
             >
-              <span className="sr-only">Menu</span>
+              <span className="sr-only">Menü</span>
               <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
               </svg>

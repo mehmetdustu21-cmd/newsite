@@ -1,4 +1,4 @@
-import './globals.css'
+﻿import './globals.css'
 import { Poppins } from 'next/font/google'
 import { Analytics } from "@vercel/analytics/next"
 
@@ -8,8 +8,8 @@ const poppins = Poppins({
 })
 
 export const metadata = {
-  title: 'EasyChat - İşletmenizi Dijitalleştirin',
-  description: 'WhatsApp, web ve mobil platformlarında akıllı chat asistanı ile müşteri deneyiminizi üst seviyeye taşıyın.',
+  title: 'EasyChat - İletişiminizi Dijitalleştirin',
+  description: 'WhatsApp, web ve mobil platformlarda akıllı chat asistanı ile müşteri deneyiminizi üst seviyeye taşıyın.'
 }
 
 export default function RootLayout({
@@ -28,3 +28,4 @@ export default function RootLayout({
     </html>
   )
 }
+
