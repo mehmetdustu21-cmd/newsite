@@ -60,7 +60,7 @@ export default function LoginForm() {
           name="email"
           type="email"
           autoComplete="email"
-          placeholder="ornek@easychat.ai"
+          placeholder="örnek@easychat.ai"
           className="mt-2 w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 shadow-sm transition focus:border-indigo-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-200"
           value={form.email}
           onChange={handleChange('email')}

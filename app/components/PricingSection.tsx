@@ -36,7 +36,7 @@ export default function PricingSection() {
     {
       name: "Mehmet Demir",
       company: "E-ticaret Mağazası",
-      text: "24/7 müşteri desteği artık gerçek! Satışlarımız %60 artı. Harika bir sistem!",
+      text: "24/7 müşteri desteği artık gerçek! Satışlarımız %60 arttı. Harika bir sistem!",
       rating: 5
     }
   ];

@@ -236,7 +236,7 @@ export default function AssistantPage() {
                   onChange={handleEmailChange("email")}
                   required
                   className="mt-2 w-full rounded-xl border border-slate-700 bg-slate-900 px-4 py-3 text-sm text-white shadow-inner focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                  placeholder="ornek@easychat.ai"
+                  placeholder="örnek@easychat.ai"
                 />
               </div>
               <div>
