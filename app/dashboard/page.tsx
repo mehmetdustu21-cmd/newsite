@@ -1,6 +1,9 @@
-﻿import Link from 'next/link';
-import Navbar from '../components/Navbar';
-import { supabaseServerClient } from '../../lib/supabaseServer';
+﻿'use client';
+
+import Link from 'next/link';
+import { useState, useEffect } from 'react';
+import DashboardNav from '../components/DashboardNav';
+import { createBrowserClient } from '@supabase/ssr';
 
 type MessageRecord = {
   id: string;
@@ -94,24 +97,77 @@ function normalizeId(value: unknown): { text: string; numeric: number } {
   };
 }
 
-async function fetchRecentSessions(): Promise<{ sessions: SessionPreview[]; totals: { totalRecords: number; totalSessions: number; singleMessageSessions: number } }> {
-  try {
-    const supabase = supabaseServerClient();
-    const { data, error } = await supabase
-      .from('n8n_chat_histories_wp')
-      .select('id, session_id, message')
-      .order('session_id', { ascending: true })
-      .order('id', { ascending: true })
-      .limit(400);
+function useDashboardData() {
+  const [sessions, setSessions] = useState<SessionPreview[]>([]);
+  const [totals, setTotals] = useState({ totalRecords: 0, totalSessions: 0, singleMessageSessions: 0 });
+  const [loading, setLoading] = useState(true);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
-    if (error) {
-      throw new Error(error.message);
+  const fetchData = async () => {
+    try {
+      // Debug environment variables
+      console.log('🔍 Environment check:');
+      console.log('SUPABASE_URL:', process.env.NEXT_PUBLIC_SUPABASE_URL ? 'SET ✅' : 'NOT SET ❌');
+      console.log('SUPABASE_KEY:', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? 'SET ✅' : 'NOT SET ❌');
+      
+      // Check if environment variables are set
+      if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+        console.warn('❌ Supabase environment variables not set, using mock data');
+        // Mock data fallback
+        const mockData = [
+          { id: '1', session_id: 'session_001', message: 'Merhaba, nasıl yardımcı olabilirim?' },
+          { id: '2', session_id: 'session_001', message: 'Randevu almak istiyorum.' },
+          { id: '3', session_id: 'session_002', message: 'Fiyat bilgisi alabilir miyim?' },
+          { id: '4', session_id: 'session_003', message: 'Teşekkürler!' }
+        ];
+        
+        processData(mockData);
+        return;
+      }
+
+      console.log('✅ Supabase bağlantısı kuruluyor...');
+
+      // Real Supabase connection (RLS kapatıldı)
+      const supabase = createBrowserClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+      );
+      
+      console.log('🔓 Dashboard: RLS kapatıldı, veriler yükleniyor...');
+
+      const { data, error } = await supabase
+        .from('n8n_chat_histories_wp')
+        .select('id, session_id, message')
+        .order('session_id', { ascending: true })
+        .order('id', { ascending: true })
+        .limit(400);
+
+      if (error) {
+        console.error('❌ Supabase veri çekme hatası:', error);
+        return;
+      }
+
+      console.log('📊 Supabase\'den gelen veri:', data?.length, 'kayıt');
+
+      if (!data || data.length === 0) {
+        console.log('⚠️ Supabase\'de veri bulunamadı');
+        setSessions([]);
+        setTotals({ totalRecords: 0, totalSessions: 0, singleMessageSessions: 0 });
+        setLastUpdated(new Date());
+        return;
+      }
+
+      console.log('✅ Veriler işleniyor...');
+      processData(data);
+
+    } catch (error) {
+      console.error('Dashboard veri hatası:', error);
+    } finally {
+      setLoading(false);
     }
+  };
 
-    if (!data || data.length === 0) {
-      return { sessions: [], totals: { totalRecords: 0, totalSessions: 0, singleMessageSessions: 0 } };
-    }
-
+  const processData = (data: any[]) => {
     const sessionMap = new Map<string, MessageRecord[]>();
 
     for (const row of data) {
@@ -147,93 +203,88 @@ async function fetchRecentSessions(): Promise<{ sessions: SessionPreview[]; tota
 
     const singleMessageSessions = previews.filter((item) => item.totalMessages <= 1).length;
 
-    return {
-      sessions: previews.slice(0, 4),
-      totals: {
-        totalRecords: data.length,
-        totalSessions: previews.length,
-        singleMessageSessions
+    setSessions(previews.slice(0, 4));
+    setTotals({
+      totalRecords: data.length,
+      totalSessions: previews.length,
+      singleMessageSessions
+    });
+    setLastUpdated(new Date());
+  };
+
+  useEffect(() => {
+    // İlk veri yükleme
+    fetchData();
+
+    // Her 30 saniyede bir güncelle
+    const interval = setInterval(fetchData, 30000);
+
+    // Real-time subscription (only if Supabase is configured)
+    let subscription: any = null;
+    if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+      const supabase = createBrowserClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+      );
+      
+      subscription = supabase
+        .channel('dashboard-updates')
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'n8n_chat_histories_wp'
+        }, (payload) => {
+          console.log('🔄 Real-time event:', payload.eventType, payload);
+          console.log('🔄 Yeni veri algılandı, güncelleniyor...');
+          fetchData();
+        })
+        .subscribe((status) => {
+          console.log('📡 Real-time subscription status:', status);
+          if (status === 'SUBSCRIBED') {
+            console.log('✅ Real-time dinleme aktif!');
+          } else if (status === 'CHANNEL_ERROR') {
+            console.error('❌ Real-time bağlantı hatası');
+          }
+        });
+    }
+
+    return () => {
+      clearInterval(interval);
+      if (subscription) {
+        subscription.unsubscribe();
       }
     };
-  } catch (error) {
-    console.error('Dashboard oturumları alınamadı:', error);
-    return { sessions: [], totals: { totalRecords: 0, totalSessions: 0, singleMessageSessions: 0 } };
-  }
+  }, []);
+
+  return { sessions, totals, loading, lastUpdated, refetch: fetchData };
 }
 
 const quickActions = [
   {
-    title: 'Canlı sohbeti aç',
-    description: 'Web widget üzerinden anlık sohbet başlatın.',
+    title: 'Sohbet Geçmişi',
+    description: 'Müşteri sohbetlerini görüntüleyin ve yönetin.',
     href: '/chat-history',
-    accent: 'bg-emerald-500 text-white hover:bg-emerald-600'
+    accent: 'bg-emerald-500 text-white hover:bg-emerald-600',
+    icon: '💬'
   },
   {
-    title: 'Yeni otomasyon oluştur',
-    description: 'n8n akışına yeni bir senaryo ekleyin.',
-    href: '#',
-    accent: 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
+    title: 'Randevular',
+    description: 'Randevu listesini görüntüleyin.',
+    href: '/appointments',
+    accent: 'bg-blue-500 text-white hover:bg-blue-600',
+    icon: '📅'
   },
   {
-    title: 'Görev atayın',
-    description: 'Destek ekibine takip görevi oluşturun.',
-    href: '#',
-    accent: 'bg-white border border-slate-200 text-slate-700 hover:bg-slate-50'
+    title: 'Ana Sayfa',
+    description: 'Web sitesinin ana sayfasına dönün.',
+    href: '/',
+    accent: 'bg-slate-500 text-white hover:bg-slate-600',
+    icon: '🏠'
   }
 ];
 
-const supportTickets = [
-  {
-    id: 'TCK-1045',
-    title: 'KVKK aydınlatma metni güncellemesi',
-    owner: 'Ayşe Yılmaz',
-    due: 'Bugün',
-    status: 'Öncelik: Yüksek'
-  },
-  {
-    id: 'TCK-1032',
-    title: 'Instagram DM entegrasyon testi',
-    owner: 'Mert Kaya',
-    due: '2 gün kaldı',
-    status: 'Devam ediyor'
-  },
-  {
-    id: 'TCK-1028',
-    title: 'WhatsApp şablon onayı bekleniyor',
-    owner: 'Selin Aydın',
-    due: '5 gün kaldı',
-    status: 'Beklemede'
-  }
-];
-
-const integrationStatus = [
-  {
-    name: 'WhatsApp Business API',
-    status: 'Aktif',
-    description: '24 saatlik pencere içinde 4 açık konuşma var.',
-    pill: 'bg-emerald-500/10 text-emerald-600'
-  },
-  {
-    name: 'n8n otomasyon akışı',
-    status: 'Uyarı',
-    description: 'Son akışta 2 başarısız node tespit edildi. Loglara göz atın.',
-    pill: 'bg-amber-500/10 text-amber-600'
-  },
-  {
-    name: 'CRM entegrasyonu',
-    status: 'Planlanıyor',
-    description: 'Pazartesi günü sandbox bağlantısı yapılacak.',
-    pill: 'bg-slate-200 text-slate-600'
-  }
-];
-
-export const metadata = {
-  title: 'EasyChat | Kontrol Paneli',
-  description: 'Sohbet operasyonlarınızı tek ekrandan yönetin.'
-};
-
-export default async function DashboardPage() {
-  const { sessions, totals } = await fetchRecentSessions();
+export default function DashboardPage() {
+  const { sessions, totals, loading, lastUpdated, refetch } = useDashboardData();
 
   const overviewCards = [
     {
@@ -260,8 +311,8 @@ export default async function DashboardPage() {
 
   return (
     <main className="min-h-screen bg-slate-50">
-      <Navbar />
-      <section className="pt-24 pb-16 px-4">
+      <DashboardNav active="dashboard" />
+      <section className="px-4 pb-16 pt-12 sm:px-6 lg:px-8">
         <div className="mx-auto flex max-w-7xl flex-col gap-10">
           <header className="space-y-4">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
@@ -270,19 +321,33 @@ export default async function DashboardPage() {
                 <p className="mt-2 max-w-2xl text-sm sm:text-base text-slate-600">
                   Sohbet kanallarınızı izleyin, ekibin durumunu görün ve kritik aksiyonlara tek tıkla ulaşın.
                 </p>
+                {lastUpdated && (
+                  <p className="mt-1 text-xs text-slate-400">
+                    Son güncelleme: {lastUpdated.toLocaleTimeString('tr-TR')}
+                  </p>
+                )}
               </div>
-              <Link
-                href="/chat-history"
-                className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-slate-300 hover:text-slate-900"
-              >
-                Sohbet geçmişini aç
-              </Link>
+              <div className="flex gap-2">
+                <button
+                  onClick={refetch}
+                  disabled={loading}
+                  className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:border-slate-300 hover:text-slate-900 disabled:opacity-50"
+                >
+                  {loading ? '🔄' : '↻'} Yenile
+                </button>
+                <Link
+                  href="/chat-history"
+                  className="inline-flex items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-slate-300 hover:text-slate-900"
+                >
+                  Sohbet geçmişini aç
+                </Link>
+              </div>
             </div>
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               {overviewCards.map((card) => (
-                <div key={card.label} className="rounded-2xl border border-slate-200 bg-white/90 p-5 shadow-sm">
+                <div key={card.label} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
                   <p className="text-xs font-medium uppercase tracking-wide text-slate-500">{card.label}</p>
-                  <p className="mt-3 text-2xl font-semibold text-slate-900">{card.value}</p>
+                  <p className="mt-2 text-xl font-semibold text-slate-900">{card.value}</p>
                   <p className="mt-1 text-xs text-slate-400">{card.helper}</p>
                 </div>
               ))}
@@ -298,15 +363,18 @@ export default async function DashboardPage() {
                     <p className="text-sm text-slate-500">Rutin işlerinizi hızlandırın.</p>
                   </div>
                 </div>
-                <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                <div className="mt-6 grid gap-4 sm:grid-cols-3">
                   {quickActions.map((action) => (
                     <Link
                       key={action.title}
                       href={action.href}
-                      className={`rounded-2xl p-5 text-left transition shadow-sm ${action.accent}`}
+                      className={`rounded-xl p-4 text-left transition-colors shadow-sm ${action.accent}`}
                     >
-                      <h3 className="text-base font-semibold">{action.title}</h3>
-                      <p className="mt-2 text-sm opacity-80">{action.description}</p>
+                      <div className="flex items-center space-x-3">
+                        <span className="text-xl">{action.icon}</span>
+                        <h3 className="text-sm font-semibold">{action.title}</h3>
+                      </div>
+                      <p className="mt-2 text-xs opacity-90">{action.description}</p>
                     </Link>
                   ))}
                 </div>
@@ -323,57 +391,66 @@ export default async function DashboardPage() {
                   </Link>
                 </div>
                 <div className="mt-6 space-y-4">
-                  {sessions.length === 0 && (
+                  {loading ? (
+                    <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center">
+                      <div className="animate-pulse">
+                        <div className="text-sm text-slate-500">🔄 Veriler yükleniyor...</div>
+                      </div>
+                    </div>
+                  ) : sessions.length === 0 ? (
                     <p className="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-6 text-sm text-slate-500">
                       Gösterilecek oturum bulunamadı. Supabase tablonuza veri eklendiğinde ön izleme burada görünecek.
                     </p>
-                  )}
-                  {sessions.map((session) => (
-                    <div key={session.sessionId} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-                      <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wide text-slate-500">
-                        <span>Oturum: {session.sessionId}</span>
-                        <span>{session.totalMessages} mesaj</span>
+                  ) : (
+                    sessions.map((session) => (
+                      <div key={session.sessionId} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                        <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wide text-slate-500">
+                          <span>Oturum: {session.sessionId}</span>
+                          <span>{session.totalMessages} mesaj</span>
+                        </div>
+                        <p className="mt-3 text-sm text-slate-700">{session.preview || 'Ön izleme bulunamadı'}</p>
                       </div>
-                      <p className="mt-3 text-sm text-slate-700">{session.preview || 'Ön izleme bulunamadı'}</p>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               </div>
             </div>
 
             <div className="space-y-6">
-              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                <h2 className="text-lg font-semibold text-slate-900">Görevler</h2>
-                <p className="text-sm text-slate-500">Takip gerektiren önemli aksiyonlar.</p>
-                <div className="mt-5 space-y-4">
-                  {supportTickets.map((ticket) => (
-                    <div key={ticket.id} className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                      <div className="flex items-center justify-between text-xs font-semibold uppercase tracking-wide text-slate-500">
-                        <span>{ticket.id}</span>
-                        <span>{ticket.status}</span>
-                      </div>
-                      <p className="mt-2 text-sm font-medium text-slate-800">{ticket.title}</p>
-                      <p className="text-xs text-slate-500">Sorumlu: {ticket.owner} · {ticket.due}</p>
+              <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+                <h2 className="text-lg font-semibold text-slate-900">Sistem Durumu</h2>
+                <p className="text-sm text-slate-500">Temel sistem bileşenleri.</p>
+                <div className="mt-4 space-y-3">
+                  <div className="flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50 p-3">
+                    <div>
+                      <h3 className="text-sm font-medium text-slate-800">WhatsApp API</h3>
+                      <p className="text-xs text-slate-600">Mesajlaşma servisi</p>
                     </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-                <h2 className="text-lg font-semibold text-slate-900">Entegrasyon durumu</h2>
-                <p className="text-sm text-slate-500">Altyapı ve otomasyon bileşenlerinin son durumu.</p>
-                <div className="mt-5 space-y-4">
-                  {integrationStatus.map((integration) => (
-                    <div key={integration.name} className="rounded-xl border border-slate-100 bg-slate-50 p-4">
-                      <div className="flex items-center justify-between">
-                        <h3 className="text-sm font-semibold text-slate-800">{integration.name}</h3>
-                        <span className={`rounded-full px-3 py-1 text-xs font-semibold ${integration.pill}`}>
-                          {integration.status}
-                        </span>
-                      </div>
-                      <p className="mt-2 text-sm text-slate-600">{integration.description}</p>
+                    <span className="rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-800">
+                      Aktif
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50 p-3">
+                    <div>
+                      <h3 className="text-sm font-medium text-slate-800">Veritabanı</h3>
+                      <p className="text-xs text-slate-600">Supabase bağlantısı</p>
                     </div>
-                  ))}
+                    <span className="rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-800">
+                      Çalışıyor
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50 p-3">
+                    <div>
+                      <h3 className="text-sm font-medium text-slate-800">Real-time Sync</h3>
+                      <p className="text-xs text-slate-600">Anlık veri güncellemesi</p>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse"></div>
+                      <span className="rounded-full bg-green-100 px-2 py-1 text-xs font-medium text-green-800">
+                        Dinliyor
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
