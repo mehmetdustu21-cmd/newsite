@@ -142,7 +142,7 @@ const Dashboard = () => {
   // Fetch sessions
   const fetchSessions = async () => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseBrowserClient()
         .from('n8n_chat_histories_wp')
         .select('session_id, message, created_at')
         .not('session_id', 'is', null)
@@ -180,7 +180,7 @@ const Dashboard = () => {
     if (!sessionId) return;
     
     try {
-      const { data, error } = await supabase
+      const { data, error } = await supabaseBrowserClient()
         .from('n8n_chat_histories_wp')
         .select('id, message, session_id, created_at')
         .eq('session_id', sessionId)
