@@ -281,8 +281,8 @@ function YodaModel({ isTalking, isThinking, isHappy }: {
     }
   })
 
-  // Show loading or fallback
-  if (isLoading) {
+  // Show fallback if no scene
+  if (!scene) {
     return (
       <group ref={yodaRef} scale={[0.5, 0.5, 0.5]} position={[0, 0, 0]}>
         <Text
@@ -298,24 +298,6 @@ function YodaModel({ isTalking, isThinking, isHappy }: {
     )
   }
   
-  if (error || !scene) {
-    return (
-      <group ref={yodaRef} scale={[0.5, 0.5, 0.5]} position={[0, 0, 0]}>
-        <Text
-          position={[0, 0, 0]}
-          fontSize={0.15}
-          color="#ff0000"
-          anchorX="center"
-          anchorY="middle"
-        >
-          Model Error!
-        </Text>
-        <Sphere args={[0.2, 16, 16]} position={[0, 0, 0]}>
-          <meshStandardMaterial color="#ff0000" />
-        </Sphere>
-      </group>
-    )
-  }
 
   return (
     <group ref={yodaRef} scale={[25, 25, 25]} position={[0, 0, 0]}>
