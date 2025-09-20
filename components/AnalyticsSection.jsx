@@ -31,7 +31,7 @@ export default function AnalyticsSection() {
     resolvedIssues: 0,
     avgSessionDuration: 0
   });
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false); // Geçici olarak false yapalım
   const [timeRange, setTimeRange] = useState('daily');
 
   const fetchAnalyticsData = async () => {
@@ -142,7 +142,7 @@ export default function AnalyticsSection() {
   };
 
   useEffect(() => {
-    fetchAnalyticsData();
+    // fetchAnalyticsData(); // Geçici olarak devre dışı
   }, []);
 
   const MetricCard = ({ title, value, icon: Icon, color, trend }) => (
