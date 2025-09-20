@@ -6,6 +6,7 @@ import SocialProofSection from './components/SocialProofSection'
 import DemoForm from './components/DemoForm'
 import PricingSection from './components/PricingSection'
 import Footer from './components/Footer'
+import LiveSupportButton from './components/LiveSupportButton'
 
 export const metadata: Metadata = {
   title: 'EasyChat - Your AI Chatbot and WhatsApp Chatbot Solution',
@@ -23,6 +24,7 @@ export default function Home() {
       <DemoForm />
       <PricingSection />
       <Footer />
+      <LiveSupportButton />
     </main>
   )
 }

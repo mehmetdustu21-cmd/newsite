@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { supabaseBrowserClient } from '../../lib/supabaseClient';
 import DashboardBackground from '../../components/DashboardBackground'
-import RobotAssistant from '../../components/RobotAssistant';
 import AnalyticsSection from '../../components/AnalyticsSection';
 import { 
   MessageCircle, 
@@ -710,10 +709,6 @@ const Dashboard = () => {
         </div>
       </div>
       
-      {/* Michibot 3D Model */}
-      <div className="fixed bottom-4 right-4 w-80 h-96 z-50">
-        <RobotAssistant />
-      </div>
     </div>
   );
 };
