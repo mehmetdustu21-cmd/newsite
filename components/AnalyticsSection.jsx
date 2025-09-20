@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { supabaseBrowserClient } from '../../lib/supabaseClient';
+import { supabaseBrowserClient } from '../lib/supabaseClient';
 import { 
   BarChart3, 
   TrendingUp, 
