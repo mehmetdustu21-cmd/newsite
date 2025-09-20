@@ -16,23 +16,8 @@ import {
   Zap
 } from 'lucide-react';
 
-interface AnalyticsData {
-  dailyMessages: number;
-  weeklyMessages: number;
-  monthlyMessages: number;
-  activeUsers: number;
-  avgResponseTime: number;
-  satisfactionRate: number;
-  messageTraffic: Array<{ date: string; count: number }>;
-  popularQuestions: Array<{ question: string; count: number }>;
-  aiAccuracy: number;
-  totalSessions: number;
-  resolvedIssues: number;
-  avgSessionDuration: number;
-}
-
 export default function AnalyticsSection() {
-  const [analyticsData, setAnalyticsData] = useState<AnalyticsData>({
+  const [analyticsData, setAnalyticsData] = useState({
     dailyMessages: 0,
     weeklyMessages: 0,
     monthlyMessages: 0,
@@ -47,7 +32,7 @@ export default function AnalyticsSection() {
     avgSessionDuration: 0
   });
   const [loading, setLoading] = useState(true);
-  const [timeRange, setTimeRange] = useState<'daily' | 'weekly' | 'monthly'>('daily');
+  const [timeRange, setTimeRange] = useState('daily');
 
   const fetchAnalyticsData = async () => {
     try {
@@ -160,13 +145,7 @@ export default function AnalyticsSection() {
     fetchAnalyticsData();
   }, []);
 
-  const MetricCard = ({ title, value, icon: Icon, color, trend }: {
-    title: string;
-    value: string | number;
-    icon: any;
-    color: string;
-    trend?: { value: number; isPositive: boolean };
-  }) => (
+  const MetricCard = ({ title, value, icon: Icon, color, trend }) => (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
@@ -211,7 +190,7 @@ export default function AnalyticsSection() {
           
           {/* Time Range Selector */}
           <div className="flex bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
-            {(['daily', 'weekly', 'monthly'] as const).map((range) => (
+            {['daily', 'weekly', 'monthly'].map((range) => (
               <button
                 key={range}
                 onClick={() => setTimeRange(range)}
