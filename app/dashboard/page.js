@@ -142,13 +142,40 @@ const Dashboard = () => {
   // Fetch sessions
   const fetchSessions = async () => {
     try {
-      const { data, error } = await supabaseBrowserClient()
+      console.log('🔍 Dashboard: Fetching sessions...');
+      console.log('🔍 Environment check:');
+      console.log('SUPABASE_URL:', process.env.NEXT_PUBLIC_SUPABASE_URL ? 'SET ✅' : 'MISSING ❌');
+      console.log('SUPABASE_KEY:', process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? 'SET ✅' : 'MISSING ❌');
+
+      const supabase = supabaseBrowserClient();
+      console.log('🔍 Supabase client created:', !!supabase);
+
+      const { data, error } = await supabase
         .from('n8n_chat_histories_wp')
         .select('session_id, message, created_at')
         .not('session_id', 'is', null)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      console.log('🔍 Supabase response:', { data: data?.length || 0, error });
+
+      if (error) {
+        console.error('❌ Supabase error details:', {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint
+        });
+        throw error;
+      }
+
+      if (!data || data.length === 0) {
+        console.log('⚠️ No data found in n8n_chat_histories_wp table');
+        setSessions([]);
+        return;
+      }
+
+      console.log('✅ Data received:', data.length, 'records');
+      console.log('📊 First 3 records:', data.slice(0, 3));
 
       const sessionMap = new Map();
       data.forEach(item => {
@@ -169,9 +196,12 @@ const Dashboard = () => {
         }
       });
 
-      setSessions(Array.from(sessionMap.values()));
+      const sessionsArray = Array.from(sessionMap.values());
+      console.log('✅ Processed sessions:', sessionsArray.length);
+      setSessions(sessionsArray);
     } catch (error) {
-      console.error('Error fetching sessions:', error);
+      console.error('❌ Error fetching sessions:', error);
+      setSessions([]);
     }
   };
 
@@ -180,13 +210,25 @@ const Dashboard = () => {
     if (!sessionId) return;
     
     try {
+      console.log('🔍 Dashboard: Fetching messages for session:', sessionId);
+      
       const { data, error } = await supabaseBrowserClient()
         .from('n8n_chat_histories_wp')
         .select('id, message, session_id, created_at')
         .eq('session_id', sessionId)
         .order('id', { ascending: true });
 
-      if (error) throw error;
+      console.log('🔍 Messages response:', { data: data?.length || 0, error });
+
+      if (error) {
+        console.error('❌ Messages error details:', {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint
+        });
+        throw error;
+      }
       
       const processedMessages = (data || []).map((msg, index) => ({
         ...msg,
@@ -197,9 +239,11 @@ const Dashboard = () => {
         timestamp: new Date(msg.created_at)
       }));
       
+      console.log('✅ Processed messages:', processedMessages.length);
       setMessages(processedMessages);
     } catch (error) {
-      console.error('Error fetching messages:', error);
+      console.error('❌ Error fetching messages:', error);
+      setMessages([]);
     }
   };
 
