@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { supabaseBrowserClient } from '../../lib/supabaseClient';
 import DashboardBackground from '../../components/DashboardBackground'
 import RobotAssistant from '../../components/RobotAssistant';
-import AnalyticsSection from '../../components/AnalyticsSection';
+import AnalyticsSection from '../components/AnalyticsSection';
 import { 
   MessageCircle, 
   Users, 
