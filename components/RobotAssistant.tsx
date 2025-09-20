@@ -239,13 +239,9 @@ function YodaModel({ isTalking, isThinking, isHappy }: {
   const yodaRef = useRef<Group>(null)
   
   // Load the model
-  const { scene, animations, isLoading, error } = useGLTF('/models/michi_bot.glb')
+  const { scene, animations } = useGLTF('/models/michi_bot.glb')
   
-  if (isLoading) {
-    console.log('🔄 Loading Michibot model...')
-  } else if (error) {
-    console.error('❌ Error loading Michibot model:', error)
-  } else if (scene) {
+  if (scene) {
     console.log('✅ Michibot model loaded successfully:', scene)
     console.log('🎬 Available animations:', animations)
   }
