@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
-import { supabase } from '../../lib/supabase';
+import { supabaseBrowserClient } from '../../lib/supabaseClient';
 import DashboardBackground from '../../components/DashboardBackground'
 import RobotAssistant from '../../components/RobotAssistant';
 import { 
@@ -205,34 +205,53 @@ const Dashboard = () => {
 
   // Authentication check
   useEffect(() => {
+    let mounted = true;
+
     const checkUser = async () => {
       try {
-        const { data: { user }, error } = await supabase.auth.getUser();
-        if (error || !user) {
+        const { data: { session }, error } = await supabaseBrowserClient().auth.getSession();
+        
+        if (!mounted) return;
+        
+        if (error || !session || !session.user) {
+          console.log('No valid session found, redirecting to login');
           router.push('/login');
           return;
         }
-        setUser(user);
+        
+        console.log('Valid session found:', session.user.email);
+        setUser(session.user);
         setLoading(false);
       } catch (error) {
         console.error('Auth check error:', error);
-        router.push('/login');
+        if (mounted) {
+          router.push('/login');
+        }
       }
     };
 
     checkUser();
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_OUT' || !session) {
+    const { data: { subscription } } = supabaseBrowserClient().auth.onAuthStateChange((event, session) => {
+      if (!mounted) return;
+      
+      console.log('Auth state changed:', event, session?.user?.email);
+      
+      if (event === 'SIGNED_OUT' || !session || !session.user) {
+        console.log('User signed out or no session, redirecting to login');
         router.push('/login');
-      } else if (session) {
+      } else if (session && session.user) {
+        console.log('User authenticated:', session.user.email);
         setUser(session.user);
         setLoading(false);
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, [router]);
 
   useEffect(() => {
@@ -330,7 +349,19 @@ const Dashboard = () => {
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Yükleniyor...</p>
+          <p className="mt-4 text-gray-600">Kimlik doğrulanıyor...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // If not loading but no user, redirect to login
+  if (!loading && !user) {
+    router.push('/login');
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <p className="text-gray-600">Giriş sayfasına yönlendiriliyor...</p>
         </div>
       </div>
     );
