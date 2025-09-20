@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { supabaseBrowserClient } from '../../lib/supabaseClient';
 import DashboardBackground from '../../components/DashboardBackground'
 import RobotAssistant from '../../components/RobotAssistant';
+import AnalyticsSection from '../../components/AnalyticsSection';
 import { 
   MessageCircle, 
   Users, 
@@ -791,6 +792,10 @@ const Dashboard = () => {
                 </p>
               </div>
             </motion.div>
+          )}
+
+          {activeTab === 'analytics' && (
+            <AnalyticsSection />
           )}
         </div>
       </div>
