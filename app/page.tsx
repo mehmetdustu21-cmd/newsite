@@ -2,6 +2,7 @@ import { Metadata } from 'next'
 import Navbar from './components/Navbar'
 import HeroSection from './components/HeroSection'
 import DemoVideoSection from './components/DemoVideoSection'
+import SocialProofSection from './components/SocialProofSection'
 import DemoForm from './components/DemoForm'
 import PricingSection from './components/PricingSection'
 import Footer from './components/Footer'
@@ -18,6 +19,7 @@ export default function Home() {
       <Navbar />
       <HeroSection />
       <DemoVideoSection />
+      <SocialProofSection />
       <DemoForm />
       <PricingSection />
       <Footer />
