@@ -4,8 +4,8 @@ import { motion } from 'framer-motion';
 
 const stats = [
   {
-    value: '%80',
-    label: 'daha hızlı yanıt',
+    value: '2dk',
+    label: 'kurulum süresi',
     icon: (
       <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -24,11 +24,11 @@ const stats = [
     color: 'from-blue-500 to-cyan-500',
   },
   {
-    value: '7/24',
-    label: 'otomatik destek',
+    value: '%95',
+    label: 'müşteri memnuniyeti',
     icon: (
       <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
       </svg>
     ),
     color: 'from-emerald-500 to-green-500',
