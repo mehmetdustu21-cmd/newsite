@@ -55,13 +55,15 @@ const Dashboard = () => {
   // Fetch real statistics from Supabase
   const fetchRealStats = async () => {
     try {
+      console.log('🔍 Dashboard: Fetching real stats...');
+      
       // Total messages count
-      const { count: totalMessages } = await supabase
+      const { count: totalMessages } = await supabaseBrowserClient()
         .from('n8n_chat_histories_wp')
         .select('*', { count: 'exact', head: true });
 
       // Active chats count (unique session_ids)
-      const { data: uniqueSessions } = await supabase
+      const { data: uniqueSessions } = await supabaseBrowserClient()
         .from('n8n_chat_histories_wp')
         .select('session_id')
         .not('session_id', 'is', null);
@@ -69,7 +71,7 @@ const Dashboard = () => {
       const activeChats = new Set(uniqueSessions?.map(s => s.session_id) || []).size;
 
       // Calculate average response time
-      const { data: allMessages } = await supabase
+      const { data: allMessages } = await supabaseBrowserClient()
         .from('n8n_chat_histories_wp')
         .select('created_at')
         .order('created_at', { ascending: true });
@@ -91,10 +93,16 @@ const Dashboard = () => {
       // Calculate today's messages count
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      const { count: todayMessages } = await supabase
+      const { count: todayMessages } = await supabaseBrowserClient()
         .from('n8n_chat_histories_wp')
         .select('*', { count: 'exact', head: true })
         .gte('created_at', today.toISOString());
+
+      console.log('✅ Real stats fetched:', {
+        totalMessages: totalMessages || 0,
+        activeChats: activeChats,
+        todayMessages: todayMessages || 0
+      });
 
       setRealStats({
         totalMessages: totalMessages || 0,
@@ -104,7 +112,7 @@ const Dashboard = () => {
       });
 
     } catch (error) {
-      console.error('Error fetching real stats:', error);
+      console.error('❌ Error fetching real stats:', error);
     }
   };
 
