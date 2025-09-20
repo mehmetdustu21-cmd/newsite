@@ -1,8 +1,6 @@
 import { Metadata } from 'next'
 import Navbar from './components/Navbar'
 import HeroSection from './components/HeroSection'
-import SocialProofStrip from './components/SocialProofStrip'
-import BenefitCards from './components/BenefitCards'
 import DemoVideoSection from './components/DemoVideoSection'
 import DemoForm from './components/DemoForm'
 import PricingSection from './components/PricingSection'
@@ -19,8 +17,6 @@ export default function Home() {
     <main className="relative">
       <Navbar />
       <HeroSection />
-      <SocialProofStrip />
-      <BenefitCards />
       <DemoVideoSection />
       <DemoForm />
       <PricingSection />
