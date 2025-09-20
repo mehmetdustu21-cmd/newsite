@@ -28,7 +28,6 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   Sparkles,
-  Brain,
   Shield,
   Globe
 } from 'lucide-react';
@@ -40,7 +39,6 @@ const Dashboard = () => {
   const [sessions, setSessions] = useState([]);
   const [selectedSession, setSelectedSession] = useState(null);
   const [messages, setMessages] = useState([]);
-  const [agents, setAgents] = useState([]);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [newMessage, setNewMessage] = useState('');
   const [notifications, setNotifications] = useState([]);
@@ -613,63 +611,6 @@ const Dashboard = () => {
                 />
               </div>
 
-              {/* AI Agents Status */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-                className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700"
-              >
-                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6 flex items-center">
-                  <Brain className="w-6 h-6 mr-2 text-gray-600 dark:text-gray-300" />
-                  AI Ajanları Durumu
-                </h3>
-                
-                
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {agents.map((agent, index) => (
-                    <motion.div
-                      key={agent.id}
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: 0.5 + index * 0.1 }}
-                      className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 hover:shadow-md transition-all duration-300"
-                    >
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center space-x-3">
-                          <div className="w-10 h-10 bg-gray-600 rounded-full flex items-center justify-center text-white font-semibold">
-                            {agent.name.charAt(0)}
-                          </div>
-                          <div>
-                            <h4 className="font-semibold text-gray-900 dark:text-white">{agent.name}</h4>
-                            <p className="text-sm text-gray-500 dark:text-gray-400">{agent.specialty}</p>
-                          </div>
-                        </div>
-                        <div className={`w-3 h-3 rounded-full ${agent.status === 'online' ? 'bg-green-500' : 'bg-red-500'}`}></div>
-                      </div>
-                      <div className="space-y-2">
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-600 dark:text-gray-400">Aktif Sohbetler:</span>
-                          <span className="font-medium text-gray-900 dark:text-white">{agent.chats}</span>
-                        </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-gray-600 dark:text-gray-400">Doğruluk:</span>
-                          <span className="font-medium text-gray-900 dark:text-white">{agent.accuracy}%</span>
-                        </div>
-                        <div className="w-full bg-gray-200 dark:bg-gray-600 rounded-full h-2">
-                          <motion.div
-                            initial={{ width: 0 }}
-                            animate={{ width: `${agent.accuracy}%` }}
-                            transition={{ duration: 1, delay: 0.8 + index * 0.1 }}
-                            className="bg-blue-600 h-2 rounded-full"
-                          ></motion.div>
-                        </div>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">Son aktif: {agent.lastActive}</p>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-              </motion.div>
             </motion.div>
           )}
 
