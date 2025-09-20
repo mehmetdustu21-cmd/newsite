@@ -115,36 +115,6 @@ const Dashboard = () => {
     }
   };
 
-  // Mock agents data (you can replace this with real data from a separate table)
-  const mockAgents = [
-    { 
-      id: 1, 
-      name: 'Müşteri Destek AI', 
-      status: 'online', 
-      chats: Math.floor(Math.random() * 15) + 5, 
-      accuracy: Math.floor(Math.random() * 10) + 85,
-      lastActive: '2 dk önce',
-      specialty: 'Genel Destek'
-    },
-    { 
-      id: 2, 
-      name: 'Satış Asistanı', 
-      status: 'online', 
-      chats: Math.floor(Math.random() * 10) + 3, 
-      accuracy: Math.floor(Math.random() * 15) + 80,
-      lastActive: '5 dk önce',
-      specialty: 'Satış & Fiyatlandırma'
-    },
-    { 
-      id: 3, 
-      name: 'Teknik Uzman', 
-      status: Math.random() > 0.5 ? 'online' : 'offline', 
-      chats: Math.floor(Math.random() * 5), 
-      accuracy: Math.floor(Math.random() * 8) + 88,
-      lastActive: Math.random() > 0.5 ? '1 saat önce' : '10 dk önce',
-      specialty: 'Teknik Sorunlar'
-    }
-  ];
 
   // Fetch sessions
   const fetchSessions = async () => {
@@ -310,7 +280,6 @@ const Dashboard = () => {
     
     fetchSessions();
     fetchRealStats();
-    setAgents(mockAgents);
     
     const interval = setInterval(() => {
       fetchSessions();
